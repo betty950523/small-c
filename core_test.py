@@ -1,4 +1,3 @@
-# small-c-main/core_test.py
 from lexer import Lexer
 from parser import Parser
 from symtable import SymbolTable
