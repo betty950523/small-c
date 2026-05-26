@@ -129,12 +129,10 @@ class Lexer:
             self.advance()
 
     def skip_line_comment(self):
-        """跳過 // 到行尾"""
         while self.current_char is not None and self.current_char != '\n':
             self.advance()
 
     def skip_block_comment(self):
-        """跳過 /* ... */"""
         start_line = self.line
         self.advance(); self.advance()  # 跳過 /*
         while self.current_char is not None:
@@ -145,7 +143,6 @@ class Lexer:
         raise LexerError("Unterminated block comment", start_line)
 
     def read_escape(self):
-        """pos 指向 \\ 後面的字元，讀取並回傳對應的字元。"""
         mapping = {
             'n': '\n', 't': '\t', '0': '\0',
             '\\': '\\', "'": "'", '"': '"', 'r': '\r',
@@ -161,21 +158,21 @@ class Lexer:
     def read_number(self):
         line = self.line
         text = ''
-        # 十六進位
+        
         if self.current_char == '0' and self.peek() in ('x', 'X'):
             text += self.current_char; self.advance()
             text += self.current_char; self.advance()
             while self.current_char is not None and self.current_char in '0123456789abcdefABCDEF':
                 text += self.current_char; self.advance()
             return Token(INTEGER, int(text, 16), line)
-        # 十進位
+        
         while self.current_char is not None and self.current_char.isdigit():
             text += self.current_char; self.advance()
         return Token(INTEGER, int(text), line)
 
     def read_char_literal(self):
         line = self.line
-        self.advance()  # 跳過開頭 '
+        self.advance()  
         if self.current_char == '\\':
             self.advance()
             ch = self.read_escape()
@@ -186,12 +183,12 @@ class Lexer:
             raise LexerError("Empty char literal", line)
         if self.current_char != "'":
             raise LexerError("Unterminated char literal", line)
-        self.advance()  # 跳過結尾 '
+        self.advance()  
         return Token(CHAR_LIT, ord(ch), line)
 
     def read_string(self):
         line = self.line
-        self.advance()  # 跳過開頭 "
+        self.advance()  
         chars = []
         while self.current_char is not None and self.current_char != '"':
             if self.current_char == '\\':
@@ -205,7 +202,7 @@ class Lexer:
                 self.advance()
         if self.current_char != '"':
             raise LexerError("Unterminated string literal", line)
-        self.advance()  # 跳過結尾 "
+        self.advance()  
         return Token(STRING, ''.join(chars), line)
 
     def read_id_or_keyword(self):
@@ -220,8 +217,7 @@ class Lexer:
     def read_define(self):
         """讀 #define NAME VALUE（整行）"""
         line = self.line
-        # 已在 #，往後讀識別字
-        self.advance()  # 跳過 #
+        self.advance()  
         word = ''
         while self.current_char is not None and self.current_char.isalpha():
             word += self.current_char
