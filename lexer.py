@@ -1,15 +1,9 @@
-# lexer.py — Small-C 詞法分析器
+INTEGER = 'INTEGER'  
+CHAR_LIT = 'CHAR_LIT' 
+STRING  = 'STRING'    
 
-# ── Token 類型常數 ────────────────────────────────────────────────
-# 字面值
-INTEGER = 'INTEGER'   # 整數常數（含十六進位）
-CHAR_LIT = 'CHAR_LIT' # 字元常數 'A'
-STRING  = 'STRING'    # 字串常數 "hello"
-
-# 識別字
 ID = 'ID'
 
-# 關鍵字
 INT      = 'INT'
 CHAR     = 'CHAR'
 VOID     = 'VOID'
@@ -80,7 +74,6 @@ COMMA    = 'COMMA'    # ,
 
 EOF = 'EOF'
 
-# ── 關鍵字對照表 ──────────────────────────────────────────────────
 KEYWORDS = {
     'int':      INT,
     'char':     CHAR,
@@ -98,7 +91,6 @@ KEYWORDS = {
     'default':  DEFAULT,
 }
 
-# ── Token ─────────────────────────────────────────────────────────
 class Token:
     def __init__(self, type_, value, line=1):
         self.type  = type_
@@ -109,14 +101,12 @@ class Token:
         return f'Token({self.type}, {self.value!r}, line={self.line})'
 
 
-# ── 例外 ──────────────────────────────────────────────────────────
 class LexerError(Exception):
     def __init__(self, msg, line):
         super().__init__(f'[Lexer] Line {line}: {msg}')
         self.line = line
 
 
-# ── Lexer ─────────────────────────────────────────────────────────
 class Lexer:
     def __init__(self, text: str):
         self.text = text
@@ -124,7 +114,6 @@ class Lexer:
         self.line = 1
         self.current_char = text[0] if text else None
 
-    # ── 基本移動 ──────────────────────────────────────────────────
     def advance(self):
         if self.current_char == '\n':
             self.line += 1
@@ -135,7 +124,6 @@ class Lexer:
         i = self.pos + offset
         return self.text[i] if i < len(self.text) else None
 
-    # ── 跳過空白與註解 ────────────────────────────────────────────
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
@@ -156,7 +144,6 @@ class Lexer:
             self.advance()
         raise LexerError("Unterminated block comment", start_line)
 
-    # ── 跳脫序列 ──────────────────────────────────────────────────
     def read_escape(self):
         """pos 指向 \\ 後面的字元，讀取並回傳對應的字元。"""
         mapping = {
@@ -171,7 +158,6 @@ class Lexer:
             return mapping[ch]
         raise LexerError(f"Unknown escape sequence: \\{ch}", self.line)
 
-    # ── 各種字面值 ────────────────────────────────────────────────
     def read_number(self):
         line = self.line
         text = ''
@@ -244,7 +230,6 @@ class Lexer:
             raise LexerError(f"Unknown preprocessor directive: #{word}", line)
         return Token(DEFINE, '#define', line)
 
-    # ── 主要 get_next_token ───────────────────────────────────────
     def get_next_token(self) -> Token:
         while self.current_char is not None:
             # 空白
@@ -282,7 +267,6 @@ class Lexer:
             if self.current_char == '#':
                 return self.read_define()
 
-            # ── 運算子（雙字元優先）──────────────────────────────
             two = self.current_char + (self.peek() or '')
 
             if two == '&&': self.advance(); self.advance(); return Token(AND,          '&&', line)
@@ -301,7 +285,6 @@ class Lexer:
             if two == '/=': self.advance(); self.advance(); return Token(DIV_ASSIGN,   '/=', line)
             if two == '%=': self.advance(); self.advance(); return Token(MOD_ASSIGN,   '%=', line)
 
-            # 單字元
             ch = self.current_char
             self.advance()
             single = {
@@ -320,7 +303,6 @@ class Lexer:
         return Token(EOF, None, self.line)
 
 
-# ── 快速測試（直接執行此檔時）────────────────────────────────────
 if __name__ == '__main__':
     samples = [
         ("整數",       "42",              INTEGER),
