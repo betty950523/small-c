@@ -1,5 +1,3 @@
-# parser.py — Small-C 語法分析器 + 執行器（遞迴下降 + Tree-walking）
-
 from lexer import (
     Lexer, Token,
     INTEGER, CHAR_LIT, STRING, ID, EOF,
@@ -23,11 +21,6 @@ from symtable import (
 
 
 class Interpreter:
-    """
-    遞迴下降 Parser + Tree-walking Interpreter。
-    同一個 class 負責解析與執行，以 self.executing 旗標控制是否真正執行。
-    """
-
     def __init__(self, source: str, memory: Memory = None,
                  global_symtable: SymbolTable = None,
                  functions: dict = None,
@@ -38,16 +31,15 @@ class Interpreter:
         self.cur        = self.lexer.get_next_token()
         self.memory     = memory or Memory()
         self.symtable   = global_symtable or SymbolTable()
-        self.functions  = functions if functions is not None else {}   # name -> FuncDef
-        self.defines    = defines  if defines  is not None else {}    # name -> int
+        self.functions  = functions if functions is not None else {}  
+        self.defines    = defines  if defines  is not None else {}  
         self.trace      = trace
-        self.output_fn  = output_fn or print   # 輸出函式（REPL 可替換）
+        self.output_fn  = output_fn or print  
         self.executing  = True
 
     def _next_token(self):
         return self.lexer.get_next_token()
 
-    # ── token 操作 ────────────────────────────────────────────────
     def peek_type(self):
         return self.cur.type
 
@@ -66,7 +58,6 @@ class Interpreter:
     def match(self, *types):
         return self.cur.type in types
 
-    # ── 頂層解析 ──────────────────────────────────────────────────
     def parse_program(self, auto_run_main=True):
         while not self.match(EOF):
             self.parse_top_level()
@@ -74,7 +65,6 @@ class Interpreter:
             self._invoke_func('main', [])
 
     def _invoke_func(self, name, args, caller_symtable=None):
-        """直接呼叫函式（不從 token stream 讀引數）。"""
         if not self.executing: return 0
         from builtin import call_builtin, is_builtin
         if is_builtin(name):
@@ -82,8 +72,6 @@ class Interpreter:
         if name not in self.functions:
             raise RuntimeError_(f"Undefined function: {name}")
         func = self.functions[name]
-        # 函式的局部符號表：parent 指向全域（讓函式能存取全域變數）
-        # 注意：不繼承呼叫者的局部變數（C 的作用域規則）
         global_st = self.symtable
         while global_st.parent is not None:
             global_st = global_st.parent
@@ -102,13 +90,11 @@ class Interpreter:
         return 0
 
     def parse_top_level(self):
-        """解析頂層宣告：#define、函式定義、全域變數。"""
         if self.match(DEFINE):
             self.parse_define()
         elif self.match(INT, CHAR, VOID):
             self.parse_decl_or_func()
         else:
-            # 互動模式：直接執行語句
             self.parse_statement()
 
     def parse_define(self):
@@ -120,10 +106,8 @@ class Interpreter:
             self.defines[name] = val
 
     def parse_decl_or_func(self):
-        """int/char/void 開頭，判斷是函式定義還是變數宣告。"""
         line     = self.cur.line
-        ret_type = self._parse_type_spec()   # 'int' / 'char' / 'void' / 'int*' / 'char*'
-
+        ret_type = self._parse_type_spec() 
         name = self.eat(ID).value
 
         if self.match(LPAREN):
@@ -137,7 +121,6 @@ class Interpreter:
             self._parse_var_decl(ret_type, name, line)
 
     def _parse_type_spec(self):
-        """解析型別（含指標 *），回傳型別字串。"""
         base = self.cur.value   # 'int' / 'char' / 'void'
         self.eat(self.cur.type)
         if self.match(MUL):
@@ -156,14 +139,12 @@ class Interpreter:
                 self.eat(COMMA)
         self.eat(RPAREN)
 
-        # 收集函式主體的 token（含 { }）
         body_tokens = self._collect_block_tokens()
 
         if self.executing:
             self.functions[name] = FuncDef(name, ret_type, params, body_tokens, line)
 
     def _collect_block_tokens(self):
-        """把 { ... } 之間的 token 全部收集起來（含大括號）。"""
         tokens = []
         depth  = 0
         while not self.match(EOF):
@@ -218,7 +199,6 @@ class Interpreter:
             if init_val is not None:
                 self.memory.write(addr, init_val)
 
-    # ── 語句解析 ──────────────────────────────────────────────────
     def parse_statement(self, local_st=None):
         line = self.cur.line
         if self.trace and self.executing:
@@ -245,9 +225,8 @@ class Interpreter:
         elif self.match(RETURN):
             self._stmt_return()
         elif self.match(SEMICOLON):
-            self.eat(SEMICOLON)   # 空語句
+            self.eat(SEMICOLON) 
         elif self.match(MUL):
-            # *ptr = val;  指標寫入
             self._stmt_ptr_assign()
         else:
             self.parse_expr_stmt()
@@ -260,10 +239,10 @@ class Interpreter:
         self.eat(LBRACE)
         block_st = SymbolTable(parent=outer_st or self.symtable)
         old_st = self.symtable
-        self.symtable = block_st   # 切換到 block 作用域
+        self.symtable = block_st 
         while not self.match(RBRACE) and not self.match(EOF):
             self.parse_statement(block_st)
-        self.symtable = old_st     # 還原
+        self.symtable = old_st     
         self.eat(RBRACE)
 
     def _stmt_local_decl(self, local_st):
@@ -295,10 +274,8 @@ class Interpreter:
         cond = self.parse_expr()
         self.eat(RPAREN)
         old_exec = self.executing
-        # then
         self.executing = old_exec and bool(cond)
         self.parse_statement(local_st)
-        # else
         if self.match(ELSE):
             self.eat(ELSE)
             self.executing = old_exec and not bool(cond)
@@ -307,7 +284,6 @@ class Interpreter:
 
     def _stmt_while(self, local_st):
         self.eat(WHILE)
-        # 記下 while 起點的 token 串（需要能重複求值條件）
         saved_tokens = self._snapshot_until_end_of_loop()
         if not self.executing:
             return
@@ -318,7 +294,6 @@ class Interpreter:
             cond = sub.parse_expr()
             sub.eat(RPAREN)
             if not cond:
-                # 跳過 body
                 self_skip = self._make_sub_interpreter(saved_tokens)
                 self_skip.eat(LPAREN); self_skip.parse_expr(); self_skip.eat(RPAREN)
                 self_skip.executing = False
@@ -405,7 +380,6 @@ class Interpreter:
         """*ptr = expr;"""
         self.eat(MUL)
         name = self.eat(ID).value
-        # 可能有陣列索引：*(ptr + i) 不支援，只支援 *name
         op = self.cur.type
         if op in (ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN, MUL_ASSIGN, DIV_ASSIGN, MOD_ASSIGN):
             self.eat(op)
@@ -422,7 +396,6 @@ class Interpreter:
                            MUL_ASSIGN:old*rhs}.get(op, rhs)
                 self.memory.write(ptr_addr, val)
         else:
-            # 當表達式語句處理
             val = self.memory.read(self.memory.read(self.symtable.lookup(name).addr)) if self.executing else 0
             self.eat(SEMICOLON)
 
@@ -430,9 +403,7 @@ class Interpreter:
         self.parse_expr()
         self.eat(SEMICOLON)
 
-    # ── snapshot 工具（把剩餘 token 複製給子解譯器用）──────────────
     def _drain_tokens(self):
-        """把目前 lexer 剩餘的 token 全部讀出來。"""
         tokens = [self.cur]
         while tokens[-1].type != EOF:
             tokens.append(self._next_token())
@@ -440,7 +411,6 @@ class Interpreter:
         return tokens
 
     def _snapshot_block(self):
-        """收集一個完整的 { ... } block token 串（含大括號）。"""
         tokens = []
         depth  = 0
         while not self.match(EOF):
@@ -457,9 +427,7 @@ class Interpreter:
         return tokens
 
     def _snapshot_until_end_of_loop(self):
-        """收集 while 的 (cond) body 部分的 token 串。"""
         tokens = []
-        # 先讀 (cond)
         depth = 0
         while not self.match(EOF):
             tok = self.cur
@@ -476,7 +444,6 @@ class Interpreter:
         return tokens
 
     def _snapshot_one_stmt(self):
-        """收集一個語句（可能是 block 或單行）。"""
         tokens = []
         if self.match(LBRACE):
             depth = 0
@@ -499,19 +466,16 @@ class Interpreter:
         return tokens
 
     def _snapshot_for(self):
-        """收集 for 的 (init; cond; iter) body，分別回傳。"""
         self.eat(LPAREN)
         init_tokens = []
-        # init（到第一個 ;）
         while not self.match(EOF) and not self.match(SEMICOLON):
             init_tokens.append(self.cur)
             self.cur = self._next_token()
         if self.match(SEMICOLON):
-            init_tokens.append(self.cur)   # 包含 ;
+            init_tokens.append(self.cur)   
             self.cur = self._next_token()
         init_tokens.append(Token(EOF, None))
 
-        # cond（到第二個 ;）
         cond_tokens = []
         while not self.match(EOF) and not self.match(SEMICOLON):
             cond_tokens.append(self.cur)
@@ -519,7 +483,6 @@ class Interpreter:
         self.eat(SEMICOLON)
         cond_tokens.append(Token(EOF, None))
 
-        # iter（到 )）
         iter_tokens = []
         depth = 1
         while not self.match(EOF):
@@ -533,7 +496,6 @@ class Interpreter:
         iter_tokens.append(Token(SEMICOLON, ';'))
         iter_tokens.append(Token(EOF, None))
 
-        # body
         body_tokens = self._snapshot_one_stmt()
         body_tokens.append(Token(EOF, None))
 
@@ -541,33 +503,22 @@ class Interpreter:
                 'iter': iter_tokens, 'body': body_tokens}
 
     def _make_sub_interpreter(self, token_list):
-        """建立一個子解譯器，共用同一塊記憶體與符號表。"""
         sub = _TokenListInterpreter(
             token_list, self.memory, self.symtable,
             self.functions, self.defines, self.trace, self.output_fn)
         return sub
 
-    # ── 表達式解析（遞迴下降，依優先順序由低到高）────────────────
     def parse_expr(self):
-        """最低優先：指定運算子（右結合）。
-        
-        指定判斷策略：先解析 logical_or，若結果是單純 lval 且下一個 token 是指定運算子，
-        才執行指定；否則直接回傳右值。
-        """
         return self._parse_assign()
 
     def _parse_assign(self):
-        # 先記住目前位置，嘗試看是否為指定語句
-        # 策略：解析左側（可能是 ID 或 ID[expr]），再看是否有 = 系列運算子
         if self.match(ID):
             name = self.cur.value
             name_line = self.cur.line
             self.eat(ID)
             
-            # 函式呼叫 → 不是 lval
             if self.match(LPAREN):
                 val = self._call_func(name, name_line)
-                # 繼續解析後面可能的運算
                 return self._continue_lor(val)
             
             # 陣列元素
@@ -578,7 +529,6 @@ class Interpreter:
                 if self.match(ASSIGN, PLUS_ASSIGN, MINUS_ASSIGN,
                                MUL_ASSIGN, DIV_ASSIGN, MOD_ASSIGN):
                     return self._do_assign({'kind':'array','name':name,'idx':idx})
-                # 不是指定，當右值繼續
                 val = self._lval_read({'kind':'array','name':name,'idx':idx}) if self.executing else 0
                 return self._continue_lor(val)
             
@@ -587,7 +537,6 @@ class Interpreter:
                            MUL_ASSIGN, DIV_ASSIGN, MOD_ASSIGN):
                 return self._do_assign({'kind':'var','name':name})
             
-            # 不是指定，當右值繼續（先讀變數值，再接後面運算）
             if self.match(INC):
                 self.eat(INC)
                 if self.executing:
@@ -607,14 +556,12 @@ class Interpreter:
                     return self._continue_lor(v)
                 return 0
             
-            # 純右值
             if self.executing:
                 if name in self.defines:
                     val = self.defines[name]
                 else:
                     sym = self.symtable.lookup(name)
                     if sym is None: raise RuntimeError_(f"Undefined variable: {name}")
-                    # 陣列名稱 → 回傳首地址（模擬 C 的 array decay）
                     if sym.is_array:
                         val = sym.addr
                     else:
@@ -623,7 +570,6 @@ class Interpreter:
                 val = 0
             return self._continue_lor(val)
         
-        # 非 ID 開頭，直接走 lor
         return self.parse_lor()
 
     def _do_assign(self, lval_info):
@@ -648,8 +594,6 @@ class Interpreter:
         return 0
 
     def _continue_lor(self, left_val):
-        """已有一個左值，繼續解析後面可能的雙元運算子（lor 層以下）。"""
-        # 模擬從 parse_lor 開始，但左側已有值
         return self._continue_land(left_val)
 
     def _continue_land(self, left):
@@ -737,7 +681,6 @@ class Interpreter:
         return left
 
     def _skip_bor(self):
-        """短路求值時跳過一個 bor 層（不執行）。"""
         old = self.executing
         self.executing = False
         self.parse_bor()
@@ -859,7 +802,7 @@ class Interpreter:
                 v = self._lval_read(lval) - 1
                 self._lval_write(lval, v); return v
             return 0
-        # 取址 &var
+        
         if self.match(AMP):
             self.eat(AMP)
             name = self.eat(ID).value
@@ -875,7 +818,7 @@ class Interpreter:
                 if sym is None: raise RuntimeError_(f"Undefined variable: {name}")
                 return sym.addr
             return 0
-        # 指標取值 *ptr
+        
         if self.match(MUL):
             self.eat(MUL); name = self.eat(ID).value
             if self.executing:
@@ -888,9 +831,9 @@ class Interpreter:
 
     def parse_postfix(self):
         val = self.parse_primary()
-        # 後綴 ++ --（簡化：先回傳舊值再改）
+        
         if self.match(INC):
-            self.eat(INC); return val   # 已在 primary 讀過，這裡只吃掉符號
+            self.eat(INC); return val 
         if self.match(DEC):
             self.eat(DEC); return val
         return val
@@ -908,7 +851,7 @@ class Interpreter:
             self.eat(CHAR_LIT)
             return tok.value if self.executing else 0
 
-        # 字串常數（只在函式呼叫參數中出現，回傳位址）
+        # 字串常數
         if self.match(STRING):
             self.eat(STRING)
             if self.executing:
@@ -924,7 +867,7 @@ class Interpreter:
             self.eat(LPAREN); val = self.parse_expr(); self.eat(RPAREN)
             return val
 
-        # 識別字（變數 / 函式呼叫 / #define）
+        # 識別字
         if self.match(ID):
             name = self.eat(ID).value
 
@@ -956,9 +899,7 @@ class Interpreter:
 
         raise ParseError(f"Unexpected token: {tok.type} ({tok.value!r})", tok.line)
 
-    # ── lval 輔助（解析左值以支援指定運算）──────────────────────
     def _try_parse_lval(self):
-        """嘗試解析一個左值，回傳 lval_info dict 或 None。"""
         if not self.match(ID):
             return None
         name = self.eat(ID).value
@@ -1016,7 +957,6 @@ class Interpreter:
         if not self.executing:
             return 0
 
-        # 內建函式
         from builtin import call_builtin, is_builtin
         if is_builtin(name):
             return call_builtin(name, args, self.memory, self.output_fn)
@@ -1028,7 +968,6 @@ class Interpreter:
         return self._invoke_func(name, args, caller_symtable=self.symtable)
 
     def get_vars(self):
-        """回傳所有全域變數的 (name, type, value) 列表。"""
         result = []
         for sym in self.symtable.all_symbols():
             if sym.is_array:
@@ -1039,7 +978,6 @@ class Interpreter:
         return result
 
     def get_funcs(self):
-        """回傳所有函式定義的摘要。"""
         result = []
         for name, f in self.functions.items():
             params_str = ', '.join(f'{t} {n}' for n, t in f.params)
@@ -1047,9 +985,7 @@ class Interpreter:
         return result
 
 class _TokenListInterpreter(Interpreter):
-    """以 token list 而非原始碼初始化的子解譯器。"""
     def __init__(self, token_list, memory, symtable, functions, defines, trace, output_fn):
-        # 不呼叫 super().__init__（跳過 Lexer 初始化）
         self._token_list = token_list
         self._tok_pos    = 0
         self.memory      = memory
