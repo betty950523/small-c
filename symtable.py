@@ -42,7 +42,6 @@ class Memory:
         return v if v < 0x80000000 else v - 0x100000000
 
     def reset(self):
-        """清空記憶體（NEW 指令用）。"""
         self._mem.clear()
         self._next_addr = 1000
 
