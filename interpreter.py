@@ -1,7 +1,6 @@
 from parser import make_interpreter
 from symtable import Memory, SymbolTable
 
-
 class Interpreter:
     def __init__(self, output_fn=None, trace=False):
         self.output_fn = output_fn or print
@@ -46,7 +45,6 @@ class Interpreter:
         return errors
 
     def get_vars(self) -> list:
-        
         result = []
         for sym in self._st.all_symbols():
             if sym.is_array:
@@ -55,11 +53,10 @@ class Interpreter:
                 result.append((sym.name, sym.type_, vals, sym.size))
             else:
                 result.append((sym.name, sym.type_,
-                                self._memory.read(sym.addr), 1))
+                               self._memory.read(sym.addr), 1))
         return result
 
     def get_funcs(self) -> list:
-        
         result = []
         for name, f in self._funcs.items():
             params_str = ', '.join(f'{t} {n}' for n, t in f.params)
@@ -70,8 +67,7 @@ class Interpreter:
         self.trace = on
 
     def reset(self):
-        
-        self._memory  = Memory()
-        self._st      = SymbolTable()
-        self._funcs   = {}
-        self._defines = {}
+        self.bytes   = Memory()
+        self._st       = SymbolTable()
+        self._funcs    = {}
+        self._defines  = {}
