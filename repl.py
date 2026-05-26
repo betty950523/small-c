@@ -12,7 +12,8 @@ from buffer import (
     show_vars,
     show_funcs,
     trace_on,
-    trace_off
+    trace_off,
+    run_code,
 )
 
 
@@ -133,4 +134,4 @@ def start_repl():
             trace_off()
 
         else:
-            print("Unknown command")
+            run_code(cmd)
