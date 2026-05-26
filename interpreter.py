@@ -11,8 +11,7 @@ class Interpreter:
         self._funcs    = {}
         self._defines  = {}
 
-    def run_program(self, code: str):
-        
+    def run_program(self, code: str, auto_run_main=True):
         try:
             interp = make_interpreter(
                 code,
@@ -23,7 +22,7 @@ class Interpreter:
                 trace=self.trace,
                 output_fn=self.output_fn,
             )
-            interp.parse_program()
+            interp.parse_program(auto_run_main=auto_run_main)
         except SystemExit:
             pass
         except Exception as e:
