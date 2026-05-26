@@ -1,0 +1,7 @@
+int i; int sum; i = 0; sum = 0;
+while (i < 10) {
+    i = i + 1;
+    if (i == 3) { continue; }
+    if (i == 6) { break; }
+    sum = sum + i;
+}

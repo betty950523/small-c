@@ -1,0 +1,1 @@
+char carr[2]; carr[0] = 'B';
