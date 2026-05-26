@@ -3,7 +3,9 @@ from buffer import (
     list_lines,
     delete_line,
     clear_buffer,
-    edit_line
+    edit_line,
+    save_file,
+    load_file
 )
 
 
@@ -27,6 +29,8 @@ def start_repl():
             print("DELETE n")
             print("NEW")
             print("EDIT n")
+            print("SAVE file")
+            print("LOAD file")
             print("QUIT")
 
         elif cmd.upper() == "ABOUT":
@@ -38,8 +42,10 @@ def start_repl():
 
             while True:
                 line = input()
+
                 if line == ".":
                     break
+
                 append_line(line)
 
         elif cmd.upper() == "LIST":
@@ -47,6 +53,7 @@ def start_repl():
 
         elif cmd.upper().startswith("DELETE"):
             parts = cmd.split()
+
             if len(parts) != 2:
                 print("Usage: DELETE n")
             else:
@@ -57,12 +64,29 @@ def start_repl():
 
         elif cmd.upper().startswith("EDIT"):
             parts = cmd.split()
+
             if len(parts) != 2:
                 print("Usage: EDIT n")
             else:
                 n = int(parts[1])
                 new_text = input("New line: ")
                 edit_line(n, new_text)
+
+        elif cmd.upper().startswith("SAVE"):
+            parts = cmd.split()
+
+            if len(parts) != 2:
+                print("Usage: SAVE filename")
+            else:
+                save_file(parts[1])
+
+        elif cmd.upper().startswith("LOAD"):
+            parts = cmd.split()
+
+            if len(parts) != 2:
+                print("Usage: LOAD filename")
+            else:
+                load_file(parts[1])
 
         else:
             print("Unknown command")

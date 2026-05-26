@@ -35,3 +35,25 @@ def edit_line(n, new_text):
 
     program_buffer[n - 1] = new_text
     print(f"Edited line {n}")
+def save_file(filename):
+    with open(filename, "w") as f:
+        for line in program_buffer:
+            f.write(line + "\n")
+
+    print(f"Saved {len(program_buffer)} lines to '{filename}'")
+
+
+def load_file(filename):
+    global program_buffer
+
+    try:
+        with open(filename, "r") as f:
+            program_buffer = []
+
+            for line in f:
+                program_buffer.append(line.rstrip("\n"))
+
+        print(f"Loaded {len(program_buffer)} lines from '{filename}'")
+
+    except FileNotFoundError:
+        print("File not found.")
