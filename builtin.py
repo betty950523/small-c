@@ -2,13 +2,9 @@ import math
 import random as _random
 
 _BUILTINS = {
-    # I/O
     'printf', 'putchar', 'getchar', 'puts', 'scanf',
-    # 字串
     'strlen', 'strcpy', 'strcat', 'strcmp', 'atoi', 'itoa',
-    # 數學
     'abs', 'max', 'min', 'pow', 'sqrt', 'mod', 'rand', 'srand',
-    # 工具
     'memset', 'sizeof_int', 'sizeof_char', 'exit',
 }
 
@@ -57,8 +53,6 @@ def _format(fmt: str, args: list, memory) -> str:
     return ''.join(result)
 
 def call_builtin(name: str, args: list, memory, output_fn=print):
-    """呼叫內建函式，回傳整數結果。"""
-
     if name == 'printf':
         fmt = _read_str(memory, args[0])
         output_fn(_format(fmt, args[1:], memory), end='')
