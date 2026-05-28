@@ -21,12 +21,13 @@ class Interpreter:
                 trace=self.trace,
                 output_fn=self.output_fn,
             )
-            interp.parse_program(auto_run_main=auto_run_main)
-        except SystemExit:
-            pass
+            ret = interp.parse_program(auto_run_main=auto_run_main)
+            if auto_run_main and 'main' in self._funcs:
+                self.output_fn(f"Program exited with return value {ret if ret is not None else 0}.")
+        except SystemExit as e:
+            self.output_fn(f"Program exited with return value {e.code}.")
         except Exception as e:
             self.output_fn(str(e))
-
     def check_program(self, code: str) -> list[str]:
         errors = []
         try:
