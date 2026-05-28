@@ -6,6 +6,8 @@ _interp = Interpreter(output_fn=print)
 def append_line(line):
     program_buffer.append(line)
 
+def get_line_count():
+    return len(program_buffer)
 
 def list_lines(start=None, end=None):
     if len(program_buffer) == 0:
