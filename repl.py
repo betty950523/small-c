@@ -14,6 +14,7 @@ from buffer import (
     trace_on,
     trace_off,
     run_code,
+    get_line_count, 
 )
 
 
@@ -42,6 +43,7 @@ def start_repl():
             print("LOAD file")
             print("CHECK")
             print("RUN")
+            print("CLEAR")
             print("VARS")
             print("FUNCS")
             print("TRACE ON")
@@ -51,22 +53,29 @@ def start_repl():
         elif cmd.upper() == "ABOUT":
             print("Small-C Interpreter")
             print("Version 1.0")
-            print("Author: Betty Team")
-            print("Spring 2026")
+            print("Author: Betty, Ashley")
+            print("114-2")
 
         elif cmd.upper() == "APPEND":
             print("Enter program lines. Type . to finish.")
-
+            line_num = get_line_count() + 1
             while True:
-                line = input()
-
+                line = input(f"{line_num:4}> ")
                 if line == ".":
                     break
-
                 append_line(line)
+                line_num += 1
 
-        elif cmd.upper() == "LIST":
-            list_lines()
+        elif cmd.upper().startswith("LIST"):
+            parts = cmd.split()
+            if len(parts) == 1:
+                list_lines()
+            elif len(parts) == 2:
+                if '-' in parts[1]:
+                    n1, n2 = parts[1].split('-')
+                    list_lines(int(n1), int(n2))
+                else:
+                    list_lines(int(parts[1]), int(parts[1]))
 
         elif cmd.upper().startswith("DELETE"):
             parts = cmd.split()
@@ -77,17 +86,23 @@ def start_repl():
                 delete_line(int(parts[1]))
 
         elif cmd.upper() == "NEW":
-            clear_buffer()
-
+            if get_line_count() > 0:
+                confirm = input("Unsaved changes. Clear anyway? (Y/N): ")
+                if confirm.upper() == "Y":
+                    clear_buffer()
+            else:
+                clear_buffer()
+                
         elif cmd.upper().startswith("EDIT"):
             parts = cmd.split()
-
             if len(parts) != 2:
                 print("Usage: EDIT n")
             else:
                 n = int(parts[1])
+                list_lines(n, n)
                 new_text = input("New line: ")
-                edit_line(n, new_text)
+                if new_text:
+                    edit_line(n, new_text)
 
         elif cmd.upper().startswith("INSERT"):
             parts = cmd.split()
@@ -121,6 +136,9 @@ def start_repl():
         elif cmd.upper() == "RUN":
             run_program()
 
+        elif cmd.upper() == "CLEAR":
+            print("\033[2J\033[H", end="")
+
         elif cmd.upper() == "VARS":
             show_vars()
 
@@ -134,4 +152,13 @@ def start_repl():
             trace_off()
 
         else:
-            run_code(cmd)
+            code = cmd
+            open_braces = cmd.count('{') - cmd.count('}')
+            while open_braces > 0:
+                line = input("  > ")
+                code += '\n' + line
+                open_braces += line.count('{') - line.count('}')
+                if open_braces == 0 and code.lstrip().startswith('do'):
+                    if 'while' not in code.split('}')[-1]:
+                        open_braces = 1
+            run_code(code)
