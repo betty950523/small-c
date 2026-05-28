@@ -106,13 +106,17 @@ def start_repl():
 
         elif cmd.upper().startswith("INSERT"):
             parts = cmd.split()
-
             if len(parts) != 2:
                 print("Usage: INSERT n")
             else:
                 n = int(parts[1])
-                text = input("Insert line: ")
-                insert_line(n, text)
+                line_num = n
+                while True:
+                    line = input(f"{line_num:4}> ")
+                    if line == ".":
+                        break
+                    insert_line(n + (line_num - n), line)
+                    line_num += 1
 
         elif cmd.upper().startswith("SAVE"):
             parts = cmd.split()
