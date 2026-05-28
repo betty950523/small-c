@@ -53,8 +53,8 @@ def start_repl():
         elif cmd.upper() == "ABOUT":
             print("Small-C Interpreter")
             print("Version 1.0")
-            print("Author: Betty, Ashley")
-            print("114-2")
+            print("Author: 李忻倍,王辰禕")
+            print("Spring 2026")
 
         elif cmd.upper() == "APPEND":
             print("Enter program lines. Type . to finish.")
@@ -163,6 +163,7 @@ def start_repl():
                 code += '\n' + line
                 open_braces += line.count('{') - line.count('}')
                 if open_braces == 0 and code.lstrip().startswith('do'):
-                    if 'while' not in code.split('}')[-1]:
+                    stripped = line.strip()
+                    if not (stripped.startswith('}') and 'while' in stripped and stripped.endswith(';')):
                         open_braces = 1
             run_code(code)
