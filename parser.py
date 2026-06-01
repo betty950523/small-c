@@ -35,6 +35,7 @@ class Interpreter:
                  trace: bool = False,
                  output_fn=None):
         self.lexer      = Lexer(source)
+        self.source_lines = source.split('\n')
         self.cur        = self.lexer.get_next_token()
         self.memory     = memory or Memory()
         self.symtable   = global_symtable or SymbolTable()
@@ -95,6 +96,7 @@ class Interpreter:
         sub = _TokenListInterpreter(
             func.body_tokens, self.memory, local_st,
             self.functions, self.defines, self.trace, self.output_fn)
+        sub.source_lines = self.source_lines
         try:
             sub.parse_statement()
         except ReturnException as e:
@@ -253,7 +255,10 @@ class Interpreter:
             self.parse_expr_stmt()
 
     def _cur_stmt_preview(self):
-        """回傳目前 token 的簡短預覽（用於 TRACE）。"""
+        """回傳目前行的完整內容（用於 TRACE）。"""
+        line = self.cur.line
+        if hasattr(self, 'source_lines') and 0 < line <= len(self.source_lines):
+            return self.source_lines[line - 1].strip()
         return f'{self.cur.value}'
 
     def parse_block(self, outer_st=None):
@@ -545,6 +550,7 @@ class Interpreter:
         sub = _TokenListInterpreter(
             token_list, self.memory, self.symtable,
             self.functions, self.defines, self.trace, self.output_fn)
+        sub.source_lines = self.source_lines
         return sub
 
     # ── 表達式解析（遞迴下降，依優先順序由低到高）────────────────
@@ -1080,6 +1086,7 @@ class _TokenListInterpreter(Interpreter):
         self.output_fn   = output_fn
         self.executing   = True
         self.cur         = token_list[0] if token_list else Token(EOF, None)
+        self.source_lines = []
 
     def _next_token(self):
         self._tok_pos += 1
@@ -1095,10 +1102,11 @@ class _TokenListInterpreter(Interpreter):
         return tok
 
     def _make_sub_interpreter(self, token_list):
-        return _TokenListInterpreter(
+        sub = _TokenListInterpreter(
             token_list, self.memory, self.symtable,
             self.functions, self.defines, self.trace, self.output_fn)
-
+        sub.source_lines = self.source_lines
+        return sub
 def make_interpreter(source: str, memory=None, global_st=None,
                      functions=None, defines=None,
                      trace=False, output_fn=None) -> Interpreter:
